@@ -1,5 +1,8 @@
 import platform
 
+from logging import Logger
+
+from uuid import uuid4
 from chrome_automation import driver_instance
 
 from selenium.webdriver.support import expected_conditions as EC
@@ -7,12 +10,15 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import ElementClickInterceptedException
+
 from config import Config
+from logger import logger
 
 class BasePage:
-  def __init__(self, driver, config: Config):
+  def __init__(self, driver, config: Config, logger: Logger):
     self.driver = driver
-    self.config = config
+    self.config: Config = config
+    self.logger: Logger = logger
     self.wait = WebDriverWait(driver, self.config.SELENIUM_WAIT_TIME)
 
   def aguarda_pagina_completar(self) -> bool:
@@ -53,20 +59,22 @@ class BasePage:
 
 class PortalFornecedor(BasePage):
 
-  BUTTON_COOKIE_CONFIRM_ID = "rcc-confirm-button"
 
-  def __init__(self, driver, config: Config):
+  def __init__(self, driver, config: Config, logger):
     self.config = config
-    super().__init__(driver, config)
+    self.logger = logger
+    super().__init__(driver, config, self.logger)
 
   def load(self):
     return self.driver.get(self.config.ARMARINHO_FERNANDES_URL)
 
   def confirm_cookie(self):
-    element = self.find_element((By.ID, self.BUTTON_COOKIE_CONFIRM_ID))
+    BUTTON_COOKIE_CONFIRM_ID = "rcc-confirm-button"
+    element = self.find_element((By.ID, BUTTON_COOKIE_CONFIRM_ID))
     element.click()
 
   def envia_codigo_acesso(self):
+    self.logger.info('Inserindo código de acesso.')
     XPATH_INPUT_CODIGO_ACESSO = '//*[@id="fuse-main"]/div/div/div[1]/div[1]/div/div[2]/form/div[1]/div/div/div/input'
     XPATH_BUTTON_CODIGO_ACESSO = '//*[@id="fuse-main"]/div/div/div[1]/div[1]/div/div[2]/form/div[2]/button'
     CODIGO_ACESSO = self.config.ARMARINHO_FERNANDES_CODIGO_ACESSO
@@ -74,6 +82,7 @@ class PortalFornecedor(BasePage):
     
     self.wait.until(EC.text_to_be_present_in_element_value((By.XPATH, XPATH_INPUT_CODIGO_ACESSO), CODIGO_ACESSO))
     self.click((By.XPATH, XPATH_BUTTON_CODIGO_ACESSO))
+    self.logger.info('código de acesso, inserido com sucesso.')
   
   def login(self):
     XPATH_USUARIO = '//*[@id="fuse-main"]/div/div/div[1]/div[1]/div/div[2]/div[1]/div/div/form/div[1]/div[1]/div/div/input'
@@ -82,21 +91,31 @@ class PortalFornecedor(BasePage):
     
     USUARIO = self.config.ARMARINHO_FERNANDES_USUARIO
     PASSWORD = self.config.ARMARINHO_FERNANDES_PASSWORD
+
+    self.logger.info(f'Login com o usuário {USUARIO}')
     self.inserir_texto((By.XPATH, XPATH_USUARIO), USUARIO)
     self.inserir_texto((By.XPATH, XPATH_PASSWORD), PASSWORD)
 
     self.click((By.XPATH, XPATH_BUTTON_LOGIN))
 
+    self.logger.info(f'login efetuado com sucesso.')
+
   def requisicoes(self):
+    self.logger.info(f'Acessando painel de requisições, opção solicitações')
+
     XPATH_MENU_REQUISICOES = '//*[@id="fuse-layout"]/div/div/div/div/ul/ul[3]/li'
     XPATH_MENU_SOLICITACOES = '//*[@id="fuse-layout"]/div/div/div/div/ul/ul[3]/div/div/div/a'
     self.click((By.XPATH, XPATH_MENU_REQUISICOES))
     self.click((By.XPATH, XPATH_MENU_SOLICITACOES))
 
+    self.logger.info(f'painel de solicitações acessado com sucesso')
+
   def solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas(self):
+    self.logger.info('solicitar relatorio de entrada vs venda e saldo estoque lojas')
     XPATH_BUTTON_SOLICITAR = '//*[@id="fuse-main"]/div/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/ul/div[3]/div[1]/div[1]/div/div[2]/div/div[1]/div[1]/button'
     self.click((By.XPATH, XPATH_BUTTON_SOLICITAR))
 
+    self.logger.info('preenchendo o formulário para solicitar o relatório')
     XPATH_DATA_INICIO = '//*[@id="questions[0].date"]'
     XPATH_DATA_FIM = '//*[@id="questions[1].date"]'
 
@@ -124,7 +143,9 @@ class PortalFornecedor(BasePage):
 
     element_li = self.wait.until(EC.presence_of_element_located((By.XPATH, XPATH_LI_BY_TEXT)))
     element_li.click()
+    self.logger.info(f'Tipo de solicitação: {tipo_solicitacao['LOJA']}')
 
+    self.logger.info(f'Removendo itens de estoque do relatório')
     ITEM_ESTOQUE_SETA = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[1]/div[2]')
     ITEM_ESTOQUE_BUTTON_EXCLUIR = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[2]/div/div/div/div/button')
 
@@ -136,22 +157,28 @@ class PortalFornecedor(BasePage):
       print(self.driver.execute_script)
       self.driver.execute_script("arguments[0].click();", element_seta)
 
-    self.wait.until(EC.visibility_of_element_located(ITEM_ESTOQUE_BUTTON_EXCLUIR))
+    item_estoque_button_excluir = self.wait.until(EC.visibility_of_element_located(ITEM_ESTOQUE_BUTTON_EXCLUIR))
+    item_estoque_button_excluir.click()
+    self.logger.info(f'Removido opção itens de estoque')
 
 if __name__ == "__main__":
   config = Config()
+  tracing_id = uuid4()
+  logger.info(f'[{tracing_id}] - start automation')
   try:
-    portal_fornecedor = PortalFornecedor(driver_instance, config)
+    portal_fornecedor = PortalFornecedor(driver_instance, config, logger)
     portal_fornecedor.load()
     portal_fornecedor.confirm_cookie()
     portal_fornecedor.envia_codigo_acesso()
     portal_fornecedor.login()
     portal_fornecedor.requisicoes()
     portal_fornecedor.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas()
-  
   except Exception as error:
     print(f'Erro: ${error}')
+    logger.info(f'[{tracing_id}] - houve um erro no momento da automação')
+    logger.debug(f'[{tracing_id}] - Erro automation {error}')
 
   finally:
+    logger.info(f'[{tracing_id}] - fechando navegador')
     portal_fornecedor.close()
-    # automation.close()
+    logger.info(f'[{tracing_id}] - automação concluida.')
