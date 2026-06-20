@@ -11,6 +11,7 @@ class Config(BaseSettings):
   ARMARINHO_FERNANDES_URL: str = Field(alias='ARMARINHO_FERNANDES_URL', default='https://portalfornecedor.armarinhos-fernando.com.br/login')
   ARMARINHO_FERNANDES_USUARIO: str = Field(alias='ARMARINHO_FERNANDES_USUARIO')
   ARMARINHO_FERNANDES_PASSWORD: str = Field(alias='ARMARINHO_FERNANDES_PASSWORD')
+  ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS: int = Field(alias='ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS', default=60)
 
   model_config = SettingsConfigDict(
       env_file=".env",
