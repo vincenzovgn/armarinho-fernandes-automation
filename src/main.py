@@ -1,9 +1,10 @@
 import platform
+import traceback
 
 from logging import Logger
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
-from time import sleep
+from time import sleep, perf_counter
 
 from chrome_automation import driver_instance
 
@@ -11,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import ElementClickInterceptedException, StaleElementReferenceException
 
 from config import Config
 from logger import logger
@@ -112,73 +113,124 @@ class PortalFornecedor(BasePage):
     self.logger.info(f'Acessando painel de requisições, opção solicitações')
 
     XPATH_MENU_REQUISICOES = (By.XPATH, '//*[@id="fuse-layout"]/div/div/div/div/ul/ul[3]/li')
-    XPATH_MENU_SOLICITACOES = (By.XPATH, '//*[@id="fuse-layout"]/div/div/div/div/ul/ul[3]/div/div/div/a')
     self.click(XPATH_MENU_REQUISICOES)
+    XPATH_MENU_SOLICITACOES = (By.XPATH, '//*[@id="fuse-layout"]/div/div/div/div/ul/ul[3]/div/div/div/a')
     self.click(XPATH_MENU_SOLICITACOES)
 
     self.logger.info(f'painel de solicitações acessado com sucesso')
 
   def solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas(self):
-    periodos_em_dias = self.config.ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS
-    data_inicio = datetime.now(timezone.utc) - timedelta(days=periodos_em_dias)
-    data_inicio_formatada = data_inicio.strftime("%d/%m/%Y")
-    data_fim_formatada = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+    try:
+      periodos_em_dias = self.config.ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS
+      data_inicio = datetime.now(timezone.utc) - timedelta(days=periodos_em_dias)
+      data_inicio_formatada = data_inicio.strftime("%d/%m/%Y")
+      data_fim_formatada = datetime.now(timezone.utc).strftime("%d/%m/%Y")
 
-    self.logger.info(f'solicitar relatorio de entrada vs venda e saldo estoque lojas, data de: {data_inicio_formatada} até {data_fim_formatada} - periodo: {periodos_em_dias} dias')
-    XPATH_BUTTON_SOLICITAR = (By.XPATH, '//*[@id="fuse-main"]/div/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/ul/div[3]/div[1]/div[1]/div/div[2]/div/div[1]/div[1]/button')
-    self.click(XPATH_BUTTON_SOLICITAR)
+      self.logger.info(f'solicitar relatorio de entrada vs venda e saldo estoque lojas, data de: {data_inicio_formatada} até {data_fim_formatada} - periodo: {periodos_em_dias} dias')
+      XPATH_BUTTON_SOLICITAR = (By.XPATH, '//*[@id="fuse-main"]/div/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/ul/div[3]/div[1]/div[1]/div/div[2]/div/div[1]/div[1]/button')
+      self.click(XPATH_BUTTON_SOLICITAR)
+      sleep(1.5)
+      self.logger.info('preenchendo o formulário para solicitar o relatório')
+      XPATH_DATA_INICIO = (By.XPATH, '//*[@id="questions[0].date"]')
+      XPATH_DATA_FIM = (By.XPATH, '//*[@id="questions[1].date"]')
 
-    self.logger.info('preenchendo o formulário para solicitar o relatório')
-    XPATH_DATA_INICIO = (By.XPATH, '//*[@id="questions[0].date"]')
-    XPATH_DATA_FIM = (By.XPATH, '//*[@id="questions[1].date"]')
+      self.limpar_text_comandos_teclados_simulados(XPATH_DATA_INICIO, data_inicio_formatada)
+      self.limpar_text_comandos_teclados_simulados(XPATH_DATA_FIM, data_fim_formatada)
 
-    self.limpar_text_comandos_teclados_simulados(XPATH_DATA_INICIO, data_inicio_formatada)
-    self.limpar_text_comandos_teclados_simulados(XPATH_DATA_FIM, data_fim_formatada)
+      XPATH_SELECT_TIPO_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[1]/div[2]/div/div/div/div[1]/div/div[4]/div')
 
-    XPATH_SELECT_TIPO_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[1]/div[2]/div/div/div/div[1]/div/div[4]/div')
+      self.click(XPATH_SELECT_TIPO_SOLICITACAO)
+      tipo_solicitacao = {
+        'LOJA': 'Loja',
+        'CD': 'CD',
+        'ABDO': 'ABDO',
+        'LOJA_03': 'Loja 03'
+      }
+      OPICOES_DE_TIPO_SOLICITACAO = '//*[@id="menu-questions[3].option"]/div[3]/ul'
+      tipo_solicitacao_disponiveis = self.wait.until(EC.presence_of_element_located((By.XPATH, OPICOES_DE_TIPO_SOLICITACAO)))
+      lista = tipo_solicitacao_disponiveis.find_elements(By.TAG_NAME, 'li')
 
-    self.click(XPATH_SELECT_TIPO_SOLICITACAO)
-    tipo_solicitacao = {
-      'LOJA': 'Loja',
-      'CD': 'CD',
-      'ABDO': 'ABDO',
-      'LOJA_03': 'Loja 03'
-    }
-    OPICOES_DE_TIPO_SOLICITACAO = '//*[@id="menu-questions[3].option"]/div[3]/ul'
-    tipo_solicitacao_disponiveis = self.wait.until(EC.presence_of_element_located((By.XPATH, OPICOES_DE_TIPO_SOLICITACAO)))
-    lista = tipo_solicitacao_disponiveis.find_elements(By.TAG_NAME, 'li')
+      XPATH_LI_BY_TEXT = None    
+      for li in lista:
+        if li.text == tipo_solicitacao['LOJA']:
+          XPATH_LI_BY_TEXT = f'{OPICOES_DE_TIPO_SOLICITACAO}/li[text()="{li.text}"]'
+          continue
 
-    XPATH_LI_BY_TEXT = None    
-    for li in lista:
-      if li.text == tipo_solicitacao['LOJA']:
-        XPATH_LI_BY_TEXT = f'{OPICOES_DE_TIPO_SOLICITACAO}/li[text()="{li.text}"]'
-        continue
+      element_li = self.wait.until(EC.presence_of_element_located((By.XPATH, XPATH_LI_BY_TEXT)))
+      element_li.click()
+      self.logger.info(f'Tipo de solicitação: {tipo_solicitacao['LOJA']}')
+      self.logger.info(f'Removendo itens de estoque do relatório')
+      ITEM_ESTOQUE_SETA = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[1]/div[2]')
+      ITEM_ESTOQUE_BUTTON_EXCLUIR = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[2]/div/div/div/div/button')
+      self.garantir_clicar(ITEM_ESTOQUE_SETA)
 
-    element_li = self.wait.until(EC.presence_of_element_located((By.XPATH, XPATH_LI_BY_TEXT)))
-    element_li.click()
-    self.logger.info(f'Tipo de solicitação: {tipo_solicitacao['LOJA']}')
-    sleep(3)
-    self.logger.info(f'Removendo itens de estoque do relatório')
-    ITEM_ESTOQUE_SETA = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[1]/div[2]')
-    ITEM_ESTOQUE_BUTTON_EXCLUIR = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[2]/div/div/div/div/button')
-    self.garantir_clicar(ITEM_ESTOQUE_SETA)
+      item_estoque_button_excluir = self.wait.until(EC.visibility_of_element_located(ITEM_ESTOQUE_BUTTON_EXCLUIR))
+      item_estoque_button_excluir.click()
+      self.logger.info(f'Removido opção itens de estoque')
 
-    item_estoque_button_excluir = self.wait.until(EC.visibility_of_element_located(ITEM_ESTOQUE_BUTTON_EXCLUIR))
-    item_estoque_button_excluir.click()
-    self.logger.info(f'Removido opção itens de estoque')
+      self.logger.info('Enviar solicitação de relatório.')
+      # TO-DO criar fallback para o xpath abaixo, quando não exclui o botão de estoque o elemento button fica na div[4] conforme abaixo
+      # XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[4]/div/button')
+      XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[3]/div/button')
+      # self.garantir_clicar(XPATH_BUTTON_ENVIAR_SOLICITACAO)
+      self.logger.info('Solicitação de relatório enviado com sucesso')
+    except Exception as error:
+      self.logger.error(f'Ocorreu um erro ao solicitar o relatório: {error}')
+      traceback.print_exc()
 
-    self.logger.info('Enviar solicitação de relatório.')
-    # TO-DO criar fallback para o xpath abaixo, quando não exclui o botão de estoque o elemento button fica na div[4] conforme abaixo
-    # XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[4]/div/button')
-    XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[3]/div/button')
-    self.logger.info(f' DEBUG: {XPATH_BUTTON_ENVIAR_SOLICITACAO}')
-    # self.garantir_clicar(XPATH_BUTTON_ENVIAR_SOLICITACAO)
-    self.logger.info('Solicitação de relatório enviado com sucesso')
-    sleep(3)
+  def list_empresas(self):
+    try:
+      self.logger.info('obtendo a lista de empresas')
+      XPATH_ABRIR_MENU = (By.XPATH, '//*[@id="fuse-layout"]/div/div/div/header/div/div/button')
+      self.click(XPATH_ABRIR_MENU)
+      XPATH_LISTA_EMPRESAS = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/nav/div')
+      lista_empresas = self.wait.until(EC.presence_of_all_elements_located(XPATH_LISTA_EMPRESAS))
+      self.logger.info(f'total_EMPRESA: {len(lista_empresas)}')
+      return lista_empresas  
+    except Exception as error:
+      self.logger.error(f'Ocorreu um erro em listar empresas: {error}')
+      traceback.print_exc()
 
+  def extrair_relatorio_por_empresa(self):
+    try:
+      total_empresas = len(self.list_empresas())
+      self.logger.info(f' total empresas: {total_empresas}')
+      XPATH_FECHAR_MENU = (By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span/div/div[2]/div/button')
+      self.click(XPATH_FECHAR_MENU)
+      abrir_requisicoes = True;
+      for empresa in range(total_empresas):
+        sleep(0.5)
+        # XPATH_ABRIR_MENU = (By.XPATH, '//*[@id="fuse-layout"]/div/div/div/header/div/div/button')
+        # self.click(XPATH_ABRIR_MENU)
+        lista_atualizada = self.list_empresas()
+        # XPATH_FECHAR_MENU = (By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span/div/div[2]/div/button')
+        # self.click(XPATH_FECHAR_MENU)
+        self.logger.info(f'empresa: {empresa} - {len(lista_atualizada)}')
+        elemento = lista_atualizada[empresa]
+        try:
+          elemento.click()
+        except ElementClickInterceptedException:
+          self.logger.info('Clique interceptado, usando JS')
+          self.driver.execute_script("arguments[0].click();", elemento)
+
+        if abrir_requisicoes:
+          self.requisicoes()
+          abrir_requisicoes = False
+        sleep(0.5)
+        self.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas()
+        self.click((By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span[1]/header/div/button'))
+
+    except StaleElementReferenceException as error:
+      self.logger.error(f'Ocorreu um erro na lista de empresas1: {error}')
+      traceback.print_exc()
+
+    except Exception as error:
+      self.logger.error(f'Ocorreu um erro na lista de empresas: {error}')
+    
 if __name__ == "__main__":
   config = Config()
   tracing_id = uuid4()
+  inicio = perf_counter()
   logger.info(f'[{tracing_id}] - start automation')
   try:
     portal_fornecedor = PortalFornecedor(driver_instance, config, logger)
@@ -186,14 +238,14 @@ if __name__ == "__main__":
     portal_fornecedor.confirm_cookie()
     portal_fornecedor.envia_codigo_acesso()
     portal_fornecedor.login()
-    portal_fornecedor.requisicoes()
-    portal_fornecedor.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas()
+    portal_fornecedor.extrair_relatorio_por_empresa()
+    # portal_fornecedor.requisicoes()
+    # portal_fornecedor.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas()
   except Exception as error:
-    print(f'Erro: ${error}')
     logger.info(f'[{tracing_id}] - houve um erro no momento da automação')
     logger.debug(f'[{tracing_id}] - Erro automation {error}')
-
   finally:
     logger.info(f'[{tracing_id}] - fechando navegador')
     portal_fornecedor.close()
-    logger.info(f'[{tracing_id}] - automação concluida.')
+    fim = perf_counter()
+    logger.info(f'[{tracing_id}] - automação concluida. tempo de execução: {(fim - inicio):.3f}s')
