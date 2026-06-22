@@ -164,15 +164,14 @@ class PortalFornecedor(BasePage):
       ITEM_ESTOQUE_BUTTON_EXCLUIR = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[2]/div/div/div/div/button')
       self.garantir_clicar(ITEM_ESTOQUE_SETA)
 
-      item_estoque_button_excluir = self.wait.until(EC.visibility_of_element_located(ITEM_ESTOQUE_BUTTON_EXCLUIR))
-      item_estoque_button_excluir.click()
+      self.garantir_clicar(ITEM_ESTOQUE_BUTTON_EXCLUIR)
       self.logger.info(f'Removido opção itens de estoque')
-
+      sleep(0.3)
       self.logger.info('Enviar solicitação de relatório.')
       # TO-DO criar fallback para o xpath abaixo, quando não exclui o botão de estoque o elemento button fica na div[4] conforme abaixo
       # XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[4]/div/button')
       XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[3]/div/button')
-      # self.garantir_clicar(XPATH_BUTTON_ENVIAR_SOLICITACAO)
+      self.garantir_clicar(XPATH_BUTTON_ENVIAR_SOLICITACAO)
       self.logger.info('Solicitação de relatório enviado com sucesso')
     except Exception as error:
       self.logger.error(f'Ocorreu um erro ao solicitar o relatório: {error}')
@@ -198,13 +197,9 @@ class PortalFornecedor(BasePage):
       XPATH_FECHAR_MENU = (By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span/div/div[2]/div/button')
       self.click(XPATH_FECHAR_MENU)
       abrir_requisicoes = True;
-      for empresa in range(total_empresas):
+      for empresa in range(0, 2):
         sleep(0.5)
-        # XPATH_ABRIR_MENU = (By.XPATH, '//*[@id="fuse-layout"]/div/div/div/header/div/div/button')
-        # self.click(XPATH_ABRIR_MENU)
         lista_atualizada = self.list_empresas()
-        # XPATH_FECHAR_MENU = (By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span/div/div[2]/div/button')
-        # self.click(XPATH_FECHAR_MENU)
         self.logger.info(f'empresa: {empresa} - {len(lista_atualizada)}')
         elemento = lista_atualizada[empresa]
         try:
