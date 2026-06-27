@@ -102,7 +102,6 @@ class PortalFornecedor(BasePage):
     USUARIO = self.config.ARMARINHO_FERNANDES_USUARIO
     PASSWORD = self.config.ARMARINHO_FERNANDES_PASSWORD
 
-    self.logger.info(f'Login com o usuário {USUARIO}')
     self.inserir_texto(XPATH_USUARIO, USUARIO)
     self.inserir_texto(XPATH_PASSWORD, PASSWORD)
 
