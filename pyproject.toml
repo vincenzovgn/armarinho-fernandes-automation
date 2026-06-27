@@ -1,6 +1,7 @@
 [project]
 name = "armarinho-fernandes"
 version = "0.1.0"
+package-mode = false
 description = "Automação com selenium para solicitação de relatórios"
 authors = [
     {name = "Vincenzo",email = "vincenzovgn@gmail.com"}
