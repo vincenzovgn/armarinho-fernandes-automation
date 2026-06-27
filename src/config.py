@@ -14,7 +14,6 @@ class Config(BaseSettings):
   ARMARINHO_FERNANDES_PASSWORD: str = Field(alias='ARMARINHO_FERNANDES_PASSWORD')
   ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS: Union[int, str] = Field(default=60)
 
-  print(f'ENV___: {ARMARINHO_FERNANDES_USUARIO}')
   model_config = SettingsConfigDict(
       env_file=".env",
       env_file_encoding="utf-8",
