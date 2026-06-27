@@ -1,0 +1,44 @@
+name: Exec Automacao
+
+on:
+  schedule:
+    - cron: "40 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  rodar-automcao:
+    runs-on: ubuntu-latest
+    steps:
+      - name: copiar código do repo
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12.13
+
+      - name: Instalar o Poetry
+        run: |
+          pipx install poetry==2.3.1
+          poetry --version
+
+      - name: Configurar Cache do Poetry
+        uses: actions/cach@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Instalar dependencias do projeto
+        run: |
+          poetry install --no-interaction
+
+      - name: Executar o Script Selenium
+        env:
+          ARMARINHO_FERNANDES_URL: ${{ secrets.ARMARINHO_FERNANDES_URL }}
+          ARMARINHO_FERNANDES_USUARIO: ${{ secrets.ARMARINHO_FERNANDES_USUARIO }}
+          ARMARINHO_FERNANDES_PASSWORD: ${{ secrets.ARMARINHO_FERNANDES_PASSWORD }}
+          ARMARINHO_FERNANDES_CODIGO_ACESSO: ${{ secrets.ARMARINHO_FERNANDES_CODIGO_ACESSO }}
+          ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS: ${{ secrets.ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS }}
+        run: poetry run python src/main.py
