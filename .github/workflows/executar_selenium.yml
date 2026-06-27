@@ -8,6 +8,7 @@ on:
 jobs:
   rodar-automcao:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: copiar código do repo
         uses: actions/checkout@v3
