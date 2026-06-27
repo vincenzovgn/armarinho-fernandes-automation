@@ -33,7 +33,7 @@ jobs:
 
       - name: Instalar dependencias do projeto
         run: |
-          poetry install --no-interaction
+          poetry install --no-interaction --no-root
 
       - name: Executar o Script Selenium
         env:
