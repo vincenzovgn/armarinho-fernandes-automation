@@ -227,8 +227,9 @@ if __name__ == "__main__":
   config = Config()
   tracing_id = uuid4()
   inicio = perf_counter()
-  logger.info(f'[{tracing_id}] - start automation')
+  logger.info(f'[{tracing_id}] - start automation {config.APP_ENV} - {config.ARMARINHO_FERNANDES_USUARIO}')
   try:
+    
     portal_fornecedor = PortalFornecedor(driver_instance, config, logger)
     portal_fornecedor.load()
     portal_fornecedor.confirm_cookie()
