@@ -1,5 +1,6 @@
 import platform
 import traceback
+import tracemalloc
 
 from logging import Logger
 from uuid import uuid4
@@ -129,7 +130,7 @@ class PortalFornecedor(BasePage):
       self.logger.info(f'solicitar relatorio de entrada vs venda e saldo estoque lojas, data de: {data_inicio_formatada} até {data_fim_formatada} - periodo: {periodos_em_dias} dias')
       XPATH_BUTTON_SOLICITAR = (By.XPATH, '//*[@id="fuse-main"]/div/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/ul/div[3]/div[1]/div[1]/div/div[2]/div/div[1]/div[1]/button')
       self.click(XPATH_BUTTON_SOLICITAR)
-      sleep(1.5)
+      sleep(2)
       self.logger.info('preenchendo o formulário para solicitar o relatório')
       XPATH_DATA_INICIO = (By.XPATH, '//*[@id="questions[0].date"]')
       XPATH_DATA_FIM = (By.XPATH, '//*[@id="questions[1].date"]')
@@ -197,7 +198,7 @@ class PortalFornecedor(BasePage):
       XPATH_FECHAR_MENU = (By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span/div/div[2]/div/button')
       self.click(XPATH_FECHAR_MENU)
       abrir_requisicoes = True;
-      for empresa in range(0, 2):
+      for empresa in range(total_empresas + 1):
         sleep(0.5)
         lista_atualizada = self.list_empresas()
         self.logger.info(f'empresa: {empresa} - {len(lista_atualizada)}')
@@ -211,7 +212,7 @@ class PortalFornecedor(BasePage):
         if abrir_requisicoes:
           self.requisicoes()
           abrir_requisicoes = False
-        sleep(0.5)
+        sleep(1)
         self.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas()
         self.click((By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span[1]/header/div/button'))
 
@@ -223,6 +224,7 @@ class PortalFornecedor(BasePage):
       self.logger.error(f'Ocorreu um erro na lista de empresas: {error}')
     
 if __name__ == "__main__":
+  tracemalloc.start()
   config = Config()
   tracing_id = uuid4()
   inicio = perf_counter()
@@ -244,3 +246,6 @@ if __name__ == "__main__":
     portal_fornecedor.close()
     fim = perf_counter()
     logger.info(f'[{tracing_id}] - automação concluida. tempo de execução: {(fim - inicio):.3f}s')
+    atual, pico = tracemalloc.get_traced_memory()
+    logger.info(f"Uso atual de memória: {atual / 1024 / 1024:.2f} MB")
+    logger.info(f"Pico de memória: {pico / 1024 / 1024:.2f} MB")
