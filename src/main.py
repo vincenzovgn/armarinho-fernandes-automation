@@ -121,7 +121,7 @@ class PortalFornecedor(BasePage):
 
   def solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas(self):
     try:
-      periodos_em_dias = int(self.config.ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS)
+      periodos_em_dias = self.config.ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS
       data_inicio = datetime.now(timezone.utc) - timedelta(days=periodos_em_dias)
       data_inicio_formatada = data_inicio.strftime("%d/%m/%Y")
       data_fim_formatada = datetime.now(timezone.utc).strftime("%d/%m/%Y")

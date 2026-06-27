@@ -1,5 +1,6 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Union
 
 class Config(BaseSettings):
   APP_ENV: str = Field(alias='APP_ENV', default='local')
@@ -11,7 +12,7 @@ class Config(BaseSettings):
   ARMARINHO_FERNANDES_URL: str = Field(alias='ARMARINHO_FERNANDES_URL', default='https://portalfornecedor.armarinhos-fernando.com.br/login')
   ARMARINHO_FERNANDES_USUARIO: str = Field(alias='ARMARINHO_FERNANDES_USUARIO')
   ARMARINHO_FERNANDES_PASSWORD: str = Field(alias='ARMARINHO_FERNANDES_PASSWORD')
-  ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS: str = Field(alias='ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS', default=60)
+  ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS: Union[int, str] = Field(default=60)
 
   print(f'ENV___: {ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS} - {type(ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS)}')
   model_config = SettingsConfigDict(
