@@ -144,7 +144,7 @@ class PortalFornecedor(BasePage):
       XPATH_SELECT_TIPO_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[1]/div[2]/div/div/div/div[1]/div/div[4]/div')
 
       self.click(XPATH_SELECT_TIPO_SOLICITACAO)
-      tipo_solicitacao = {
+      lista_solicitacao = {
         'LOJA': 'Loja',
         'CD': 'CD',
         'ABDO': 'ABDO',
@@ -154,15 +154,22 @@ class PortalFornecedor(BasePage):
       tipo_solicitacao_disponiveis = self.wait.until(EC.presence_of_element_located((By.XPATH, OPICOES_DE_TIPO_SOLICITACAO)))
       lista = tipo_solicitacao_disponiveis.find_elements(By.TAG_NAME, 'li')
 
-      XPATH_LI_BY_TEXT = None    
+      XPATH_LI_BY_TEXT = None
+      tipo_solicitacao = lista_solicitacao['CD']    
       for li in lista:
-        if li.text == tipo_solicitacao['LOJA']:
-          XPATH_LI_BY_TEXT = f'{OPICOES_DE_TIPO_SOLICITACAO}/li[text()="{li.text}"]'
-          continue
+        if li.text == tipo_solicitacao:
+          OBTER_POR_ATTR_TEXT = f'li[text()="{li.text}"]'
+          OBTER_POR_INDICE = 'li[2]' # INDICE DC
+          if tipo_solicitacao == 'Loja':
+            XPATH_LI_BY_TEXT = f'{OPICOES_DE_TIPO_SOLICITACAO}/{OBTER_POR_ATTR_TEXT}'
+          if tipo_solicitacao == 'CD':
 
-      element_li = self.wait.until(EC.presence_of_element_located((By.XPATH, XPATH_LI_BY_TEXT)))
-      element_li.click()
-      self.logger.info(f'Tipo de solicitação: {tipo_solicitacao['LOJA']}')
+            XPATH_LI_BY_TEXT = f'{OPICOES_DE_TIPO_SOLICITACAO}/{OBTER_POR_INDICE}'
+          continue
+      self.garantir_clicar((By.XPATH, XPATH_LI_BY_TEXT))
+      # element_li = self.wait.until(EC.presence_of_element_located((By.XPATH, XPATH_LI_BY_TEXT)))
+      # element_li.click()
+      self.logger.info(f'Tipo de solicitação: {tipo_solicitacao}')
       self.logger.info(f'Removendo itens de estoque do relatório')
       ITEM_ESTOQUE_SETA = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[1]/div[2]')
       ITEM_ESTOQUE_BUTTON_EXCLUIR = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[2]/div[2]/div/div/div/div/button')
@@ -202,7 +209,7 @@ class PortalFornecedor(BasePage):
       XPATH_FECHAR_MENU = (By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span/div/div[2]/div/button')
       self.click(XPATH_FECHAR_MENU)
       abrir_requisicoes = True;
-      for empresa in range(total_empresas + 1):
+      for empresa in range(1):
         sleep(0.5)
         lista_atualizada = self.list_empresas()
         self.logger.info(f'empresa: {empresa} - {len(lista_atualizada)}')
