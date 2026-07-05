@@ -119,14 +119,14 @@ class PortalFornecedor(BasePage):
 
     self.logger.info(f'painel de solicitações acessado com sucesso')
 
-  def solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas(self):
+  def solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas(self, nome_empresa: str):
     try:
       periodos_em_dias = int(self.config.ARMARINHO_FERNANDES_RELATORIO_ENTRADA_VENDAS_SALDO_STOQUE_PERIODO_DIAS)
       data_inicio = datetime.now(timezone.utc) - timedelta(days=periodos_em_dias)
       data_inicio_formatada = data_inicio.strftime("%d/%m/%Y")
       data_fim_formatada = datetime.now(timezone.utc).strftime("%d/%m/%Y")
 
-      self.logger.info(f'solicitar relatorio de entrada vs venda e saldo estoque lojas, data de: {data_inicio_formatada} até {data_fim_formatada} - periodo: {periodos_em_dias} dias')
+      self.logger.info(f'[empresa: {nome_empresa}] solicitar relatorio de entrada vs venda e saldo estoque lojas, data de: {data_inicio_formatada} até {data_fim_formatada} - periodo: {periodos_em_dias} dias')
       XPATH_BUTTON_SOLICITAR = (By.XPATH, '//*[@id="fuse-main"]/div/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/ul/div[3]/div[1]/div[1]/div/div[2]/div/div[1]/div[1]/button')
       self.click(XPATH_BUTTON_SOLICITAR)
       sleep(2)
@@ -136,6 +136,10 @@ class PortalFornecedor(BasePage):
 
       self.limpar_text_comandos_teclados_simulados(XPATH_DATA_INICIO, data_inicio_formatada)
       self.limpar_text_comandos_teclados_simulados(XPATH_DATA_FIM, data_fim_formatada)
+
+      XPATH_INPUT_DESCRICAO_CENARIO = (By.XPATH, '//*[@id="questions[2].text"]')
+      descricao_cenario = f'{nome_empresa} {periodos_em_dias} dias. aut'
+      self.inserir_texto(XPATH_INPUT_DESCRICAO_CENARIO, descricao_cenario)
 
       XPATH_SELECT_TIPO_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[1]/div[2]/div/div/div/div[1]/div/div[4]/div')
 
@@ -172,6 +176,7 @@ class PortalFornecedor(BasePage):
       # XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[4]/div/button')
       XPATH_BUTTON_ENVIAR_SOLICITACAO = (By.XPATH, '/html/body/div[4]/div[3]/div/div[2]/div/form/div[3]/div/button')
       self.garantir_clicar(XPATH_BUTTON_ENVIAR_SOLICITACAO)
+      sleep(0.3)
       self.logger.info('Solicitação de relatório enviado com sucesso')
     except Exception as error:
       self.logger.error(f'Ocorreu um erro ao solicitar o relatório: {error}')
@@ -208,11 +213,13 @@ class PortalFornecedor(BasePage):
           self.logger.info('Clique interceptado, usando JS')
           self.driver.execute_script("arguments[0].click();", elemento)
 
+        nome_empresa = self.wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="fuse-layout"]/div/div/div/header/div/div/p'))).text
+
         if abrir_requisicoes:
           self.requisicoes()
           abrir_requisicoes = False
         sleep(1)
-        self.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas()
+        self.solicitar_relatorio_entrada_vs_venda_saldo_estoque_lojas(nome_empresa)
         self.click((By.XPATH, '/html/body/div[4]/div[3]/div/div[1]/div/span[1]/header/div/button'))
 
     except StaleElementReferenceException as error:
